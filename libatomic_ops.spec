@@ -1,26 +1,40 @@
-Summary:	Atomic operations implementation
+Summary:	Semi-portable access to hardware-provided atomic memory update operations
 Name:		libatomic_ops
-Version:	1.2
-Release:	13
+Version:	7.4.2
+Release:	1
 License:	MIT-like (libatomic_ops), GPL v2+ (libatomic_ops_gpl)
 Group:		Development/Libraries
-Source0:	http://www.hpl.hp.com/research/linux/atomic_ops/download/%{name}-%{version}.tar.gz
-# Source0-md5:	1b65e48271c81e3fa2d7a9a69bab7504
-URL:		http://www.hpl.hp.com/research/linux/atomic_ops/
+Source0:	https://github.com/ivmai/libatomic_ops/archive/%{name}-7_4_2.tar.gz
+# Source0-md5:	9c7f41e98cbf4b9dfa54392bc5d9ed65
+Patch0:		%{name}-libadd.patch
+URL:		https://github.com/ivmai/libatomic_ops
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-Provides implementations for atomic memory update operations on a
-number of architectures. This allows direct use of these in reasonably
-portable code. Unlike earlier similar packages, this one explicitly
-considers memory barrier semantics, and allows the construction of
-code that involves minimum overhead across a variety of architectures.
+This package provides semi-portable access to hardware-provided atomic
+memory update operations on a number architectures.
+
+%package devel
+Summary:	Developmet files for libatomic_ops library
+Group:		Development/Libraries
+Requires:	%{name} = %{version}-%{release}
+
+%description devel
+Developmet files for libatomic_ops library.
 
 %prep
-%setup -q
+%setup -qn libatomic_ops-libatomic_ops-7_4_2
+%patch0 -p1
 
 %build
-%configure
+%{__libtoolize}
+%{__aclocal}
+%{__autoheader}
+%{__automake}
+%{__autoconf}
+%configure \
+	--disable-static    \
+	--enable-shared
 %{__make}
 
 %install
@@ -29,14 +43,28 @@ rm -rf $RPM_BUILD_ROOT
 %{__make} install \
 	DESTDIR=$RPM_BUILD_ROOT
 
+%{__rm} $RPM_BUILD_ROOT%{_libdir}/*.la
+%{__rm} -r $RPM_BUILD_ROOT%{_datadir}/%{name}
+
+%check
+%{__make} check
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
-%doc AUTHORS INSTALL README doc/{LICENSING.txt,README.txt,README_malloc.txt,README_stack.txt}
-%{_libdir}/libatomic_ops.a
-%{_libdir}/libatomic_ops_gpl.a
+%doc AUTHORS doc/{LICENSING.txt,README.txt,README_malloc.txt,README_stack.txt}
+%attr(755,root,root) %ghost %{_libdir}/libatomic_ops.so.1
+%attr(755,root,root) %ghost %{_libdir}/libatomic_ops_gpl.so.1
+%attr(755,root,root) %{_libdir}/libatomic_ops.so.*.*.*
+%attr(755,root,root) %{_libdir}/libatomic_ops_gpl.so.*.*.*
+
+%files devel
+%defattr(644,root,root,755)
+%{_libdir}/libatomic_ops.so
+%{_libdir}/libatomic_ops_gpl.so
 %{_includedir}/atomic_ops*.h
 %{_includedir}/atomic_ops
+%{_pkgconfigdir}/atomic_ops.pc
 
